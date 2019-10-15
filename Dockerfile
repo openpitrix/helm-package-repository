@@ -6,7 +6,6 @@ RUN apk add --no-cache util-linux jq curl
 RUN mkdir -p /data/helm-pkg
 COPY ./package/* /data/helm-pkg/
 COPY init_repo.sh /usr/local/bin/
-COPY config.json /usr/local/bin/
 RUN chmod +x /usr/local/bin/init_repo.sh
 COPY --from=openpitrix/openpitrix:latest /usr/local/bin/opctl /usr/local/bin/
 
