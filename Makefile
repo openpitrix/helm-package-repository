@@ -1,13 +1,12 @@
-default:
-	docker build -t openpitrix/init-repo .
-	@echo "ok"
+BUILDX_BUILD_PUSH=docker buildx build --platform linux/amd64,linux/arm64 --output=type=registry --push
 
-pull:
-	docker pull openpitrix/init-repo
-	@echo "ok"
+build-push-image-%: ## build docker image
+	if [ "$*" = "latest" ];then \
+	$(BUILDX_BUILD_PUSH) -t openpitrix/release-app:latest . && \
+	elif [ "`echo "$*" | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+"`" != "" ];then \
+	$(BUILDX_BUILD_PUSH) -t openpitrix/release-app:$* . && \
+	fi
 
-test:
-	docker run --rm -it -v /data/helm-pkg:/data/helm-pkg sh /usr/local/bin/init-repo.sh
-
-clean:
-	@echo "ok"
+.PHONY: build
+build:
+	docker build -t openpitrix/release-app:latest .

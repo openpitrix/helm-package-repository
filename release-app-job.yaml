@@ -1,11 +1,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hyperpitrix-init-repo-job
+  name: hyperpitrix-release-app-job
   namespace: openpitrix-system
   labels:
     app: hyperpitrix
-    job: hyperpitrix-init-repo
+    job: hyperpitrix-release-app
     version: v0.0.1
 spec:
   backoffLimit: 6
@@ -15,22 +15,15 @@ spec:
     metadata:
       labels:
         app: hyperpitrix
-        job: hyperpitrix-init-repo
+        job: hyperpitrix-release-app
         version: v0.0.1
-      name: hyperpitrix-init-repo-job
+      name: hyperpitrix-release-app-job
     spec:
       containers:
-      - command: ['sh', '-c', 'sh /usr/local/bin/init_repo.sh']
-        name: hyperpitrix-init-repo-job
+      - command: ["release-app","-path","/data/helm-pkg/"]
+        name: hyperpitrix-release-app-job
         imagePullPolicy: IfNotPresent
-        image: openpitrix/init-repo:latest
-        env:
-        - name: CLIENT_ID
-          value: "x"
-        - name: CLIENT_SECRET
-          value: "y"
-        - name: ENDPOINT_URL
-          value: "http://103.61.38.253:9100"
+        image: openpitrix/release-app
       restartPolicy: OnFailure
       dnsPolicy: ClusterFirst
       schedulerName: default-scheduler
