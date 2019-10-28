@@ -8,6 +8,8 @@ import (
 	"openpitrix.io/openpitrix/pkg/client/app"
 	"openpitrix.io/openpitrix/pkg/logger"
 	"openpitrix.io/openpitrix/pkg/pb"
+	"openpitrix.io/openpitrix/pkg/sender"
+	"openpitrix.io/openpitrix/pkg/util/ctxutil"
 	"openpitrix.io/openpitrix/pkg/util/pbutil"
 	"strings"
 )
@@ -19,7 +21,7 @@ func main() {
 
 	fileInfoList, err := ioutil.ReadDir(path)
 	if err != nil {
-		logger.Error(nil, "read dir path error: %s",err.Error())
+		logger.Error(nil, "read dir path error: %s", err.Error())
 	}
 
 	for _, f := range fileInfoList {
@@ -42,18 +44,24 @@ func main() {
 
 		createReq := &pb.CreateAppRequest{
 			VersionPackage: pbutil.ToProtoBytes(pkg),
-			Name:    pbutil.ToProtoString(appName),
+			Name:           pbutil.ToProtoString(appName),
 			VersionType:    pbutil.ToProtoString("helm"),
 		}
 
-		res, err := client.CreateApp(context.Background(), createReq)
+		ctxFunc := func() (ctx context.Context){
+			ctx = context.Background()
+			ctx = ctxutil.ContextWithSender(ctx, sender.GetSystemSender())
+			return
+		}
+		res, err := client.CreateApp(ctxFunc(), createReq)
 		if err != nil {
 			logger.Error(nil, "create app error: %s", err.Error())
 		} else {
 			submitReq := &pb.SubmitAppVersionRequest{
 				VersionId: res.VersionId,
 			}
-			_, err = client.SubmitAppVersion(context.Background(), submitReq)
+
+			_, err = client.SubmitAppVersion(ctxFunc(), submitReq)
 			if err != nil {
 				logger.Error(nil, "submit app error: %s", err.Error())
 			}
@@ -61,7 +69,7 @@ func main() {
 			passReq := &pb.PassAppVersionRequest{
 				VersionId: res.VersionId,
 			}
-			_, err = client.AdminPassAppVersion(context.Background(), passReq)
+			_, err = client.AdminPassAppVersion(ctxFunc(), passReq)
 			if err != nil {
 				logger.Error(nil, "pass app error: %s", err.Error())
 			}
@@ -69,7 +77,7 @@ func main() {
 			releaseReq := &pb.ReleaseAppVersionRequest{
 				VersionId: res.VersionId,
 			}
-			_, err = client.ReleaseAppVersion(context.Background(), releaseReq)
+			_, err = client.ReleaseAppVersion(ctxFunc(), releaseReq)
 			if err != nil {
 				logger.Error(nil, "release app error: %s", err.Error())
 			}

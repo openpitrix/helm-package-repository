@@ -13,4 +13,4 @@ require (
 	openpitrix.io/openpitrix v0.4.1
 )
 
-replace openpitrix.io/openpitrix => openpitrix.io/openpitrix v0.4.1-0.20191016075209-5d9de76b4fea
+replace openpitrix.io/openpitrix => openpitrix.io/openpitrix v0.4.2

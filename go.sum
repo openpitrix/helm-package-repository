@@ -111,3 +111,5 @@ openpitrix.io/openpitrix v0.4.1-0.20191015160942-0202761f0f49/go.mod h1:8rZSFeUp
 openpitrix.io/openpitrix v0.4.1-0.20191016075209-5d9de76b4fea/go.mod h1:8rZSFeUp2Np5kfKAXfRL/1HSh6BYywNCALt+ZnxFQ/4=
 openpitrix.io/openpitrix v0.4.1 h1:Hzcw143qia7QJVfA7qE/nQCgOag9+0XrIiw1oLxSxos=
 openpitrix.io/openpitrix v0.4.1/go.mod h1:8rZSFeUp2Np5kfKAXfRL/1HSh6BYywNCALt+ZnxFQ/4=
+openpitrix.io/openpitrix v0.4.2 h1:VpPfB703BTAH3vnNLElypz5UgxOAXAL03V0JIr7Dg0o=
+openpitrix.io/openpitrix v0.4.2/go.mod h1:8rZSFeUp2Np5kfKAXfRL/1HSh6BYywNCALt+ZnxFQ/4=
