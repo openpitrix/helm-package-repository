@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"github.com/go-openapi/strfmt"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"io/ioutil"
 	"openpitrix.io/openpitrix/pkg/client/app"
 	"openpitrix.io/openpitrix/pkg/logger"
@@ -11,76 +13,113 @@ import (
 	"openpitrix.io/openpitrix/pkg/sender"
 	"openpitrix.io/openpitrix/pkg/util/ctxutil"
 	"openpitrix.io/openpitrix/pkg/util/pbutil"
-	"strings"
 )
+
+type App struct {
+	Appname  string    `json:"appname"`
+	Category string    `json:"category"`
+	Versions []Version `json:"versions"`
+}
+
+type Version struct {
+	Pkgname string `json:"pkgname"`
+	Url     string `json:"url"`
+}
+
+type Apps []App
+
+func ReadConfig(path string) *Apps {
+	var apps *Apps
+	apps = new(Apps)
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		logger.Error(nil, "read config.json error: %s", err.Error())
+	}
+	err = json.Unmarshal(content, apps)
+	if err != nil {
+		logger.Error(nil, "unmarshal error: %s", err.Error())
+	}
+	return apps
+}
+
+func AuditApp(ctxFunc func() context.Context, client *app.Client, versionId *wrappers.StringValue) {
+	submitReq := &pb.SubmitAppVersionRequest{
+		VersionId: versionId,
+	}
+
+	_, err := client.SubmitAppVersion(ctxFunc(), submitReq)
+	if err != nil {
+		logger.Error(nil, "submit app error: %s", err.Error())
+	}
+
+	passReq := &pb.PassAppVersionRequest{
+		VersionId: versionId,
+	}
+	_, err = client.AdminPassAppVersion(ctxFunc(), passReq)
+	if err != nil {
+		logger.Error(nil, "pass app error: %s", err.Error())
+	}
+
+	releaseReq := &pb.ReleaseAppVersionRequest{
+		VersionId: versionId,
+	}
+	_, err = client.ReleaseAppVersion(ctxFunc(), releaseReq)
+	if err != nil {
+		logger.Error(nil, "release app error: %s", err.Error())
+	}
+}
 
 func main() {
 	var path string
 	flag.StringVar(&path, "path", "./package/", "need package path.eg./your/path/to/pkg/")
 	flag.Parse()
-
-	fileInfoList, err := ioutil.ReadDir(path)
+	items := ReadConfig(path + "/config.json")
+	basePath := path
+	client, err := app.NewAppManagerClient()
 	if err != nil {
-		logger.Error(nil, "read dir path error: %s", err.Error())
+		panic(err)
+	}
+	ctxFunc := func() (ctx context.Context) {
+		ctx = context.Background()
+		ctx = ctxutil.ContextWithSender(ctx, sender.GetSystemSender())
+		return
 	}
 
-	for _, f := range fileInfoList {
-		filePath := path + f.Name()
-		var appName string
-		segName := strings.Split(f.Name(), "-")
-		if len(segName) > 0 {
-			appName = segName[0]
-		}
+	for _, item := range *items {
+		filePath := basePath + item.Appname + "/" + item.Versions[0].Pkgname
 		content, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			logger.Error(nil, "")
+			logger.Error(nil, "read package [%s] error: %s", filePath, err.Error())
 		}
 		pkg := strfmt.Base64(content)
-
-		client, err := app.NewAppManagerClient()
-		if err != nil {
-			panic(err)
-		}
-
 		createReq := &pb.CreateAppRequest{
 			VersionPackage: pbutil.ToProtoBytes(pkg),
-			Name:           pbutil.ToProtoString(appName),
+			Name:           pbutil.ToProtoString(item.Appname),
 			VersionType:    pbutil.ToProtoString("helm"),
 		}
+		resp, _ := client.CreateApp(ctxFunc(), createReq)
+		AuditApp(ctxFunc, client, resp.VersionId)
 
-		ctxFunc := func() (ctx context.Context){
-			ctx = context.Background()
-			ctx = ctxutil.ContextWithSender(ctx, sender.GetSystemSender())
-			return
-		}
-		res, err := client.CreateApp(ctxFunc(), createReq)
-		if err != nil {
-			logger.Error(nil, "create app error: %s", err.Error())
-		} else {
-			submitReq := &pb.SubmitAppVersionRequest{
-				VersionId: res.VersionId,
-			}
-
-			_, err = client.SubmitAppVersion(ctxFunc(), submitReq)
+		//Create AppVersion
+		for _, version := range item.Versions[1:len(item.Versions)] {
+			filePath := basePath + item.Appname + "/" + version.Pkgname
+			content, err := ioutil.ReadFile(filePath)
 			if err != nil {
-				logger.Error(nil, "submit app error: %s", err.Error())
+				logger.Error(nil, "read package [%s] error: %s", filePath, err.Error())
 			}
-
-			passReq := &pb.PassAppVersionRequest{
-				VersionId: res.VersionId,
+			pkg := strfmt.Base64(content)
+			createVersion := &pb.CreateAppVersionRequest{
+				AppId:       resp.AppId,
+				Name:        pbutil.ToProtoString(""),
+				Description: pbutil.ToProtoString(""),
+				Type:        pbutil.ToProtoString("helm"),
+				Package:     pbutil.ToProtoBytes(pkg),
 			}
-			_, err = client.AdminPassAppVersion(ctxFunc(), passReq)
+			res, err := client.CreateAppVersion(ctxFunc(), createVersion)
 			if err != nil {
-				logger.Error(nil, "pass app error: %s", err.Error())
+				logger.Error(nil, "create AppVersion error: %s", err.Error())
 			}
-
-			releaseReq := &pb.ReleaseAppVersionRequest{
-				VersionId: res.VersionId,
-			}
-			_, err = client.ReleaseAppVersion(ctxFunc(), releaseReq)
-			if err != nil {
-				logger.Error(nil, "release app error: %s", err.Error())
-			}
+			AuditApp(ctxFunc, client, res.VersionId)
 		}
 	}
 

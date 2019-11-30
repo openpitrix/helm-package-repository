@@ -1,4 +1,4 @@
 main
 /deploy
 .idea
-./release-app/release_app
+release-app/release_app

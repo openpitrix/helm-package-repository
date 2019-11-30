@@ -1,0 +1,27 @@
+[
+  {
+    "appname": "nginx",
+    "category": "HTTPServer",
+    "versions":[
+      {
+        "pkgname": "nginx-1.1.0.tgz",
+        "url": "https://charts.kubesphere.io/qingcloud/nginx-1.1.0.tgz"
+      }
+    ]
+  },
+  {
+    "appname":"redis",
+    "category": "MemoryDB",
+    "versions":[
+      {
+        "pkgname":"redis-0.1.0.tgz",
+        "url": "https://charts.kubesphere.io/experimental/redis-0.1.0.tgz"
+      },
+      {
+        "pkgname":"redis-0.1.1.tgz",
+        "url": "https://charts.kubesphere.io/experimental/redis-0.1.1.tgz"
+      }
+    ]
+  }
+]
+
