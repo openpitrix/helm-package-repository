@@ -5,7 +5,7 @@ WORKDIR /workspace/helm-package-repository/
 COPY . .
 
 RUN mkdir -p /release_bin
-RUN GOPROXY=https://goproxy.io CGO_ENABLED=0 GOBIN=/release_bin go install -ldflags '-w -s' -tags netgo ./release-app/...
+RUN GOPROXY=https://goproxy.cn CGO_ENABLED=0 GOBIN=/release_bin go install -ldflags '-w -s' -tags netgo ./cmd/...
 RUN find /release_bin -type f -exec upx {} \;
 RUN mkdir -p /data/helm-pkg
 COPY ./package/ /data/helm-pkg/

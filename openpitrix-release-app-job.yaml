@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hyperpitrix-release-app-job
+  namespace: openpitrix-system
+  labels:
+    app: hyperpitrix
+    job: hyperpitrix-release-app
+    version: v0.0.1
+spec:
+  backoffLimit: 6
+  completions: 1
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        app: hyperpitrix
+        job: hyperpitrix-release-app
+        version: v0.0.1
+      name: hyperpitrix-release-app-job
+    spec:
+      initContainers:
+      - name: wait-app-manager
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z openpitrix-app-manager.openpitrix-system.svc 9102; do echo "waiting for app-manager"; sleep 2; done;']
+      - name: wait-attachment-manager
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z openpitrix-attachment-manager.openpitrix-system.svc 9122; do echo "waiting for attachment-manager"; sleep 2; done;']
+      containers:
+      - command: ["release-app","-path","/data/helm-pkg/"]
+        name: hyperpitrix-release-app-job
+        imagePullPolicy: IfNotPresent
+        image: openpitrix/release-app:latest
+      restartPolicy: OnFailure
+      dnsPolicy: ClusterFirst
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30

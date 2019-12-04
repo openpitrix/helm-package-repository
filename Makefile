@@ -16,3 +16,8 @@ push-image-%: ## push docker image
 .PHONY: build
 build:
 	docker build -t openpitrix/release-app:latest .
+
+.PHONY: debug
+debug:
+	docker build -t openpitrix/release-app:debug .
+	docker push openpitrix/release-app:debug
