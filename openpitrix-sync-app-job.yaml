@@ -20,19 +20,19 @@ spec:
       name: openpitrix-sync-app-job
     spec:
       initContainers:
-        - name: wait-app-manager
-          image: busybox:1.28.4
-          imagePullPolicy: IfNotPresent
-          command: ['sh', '-c', 'until nc -z openpitrix-app-manager.openpitrix-system.svc 9102; do echo "waiting for app-manager"; sleep 2; done;']
-        - name: wait-attachment-manager
-          image: busybox:1.28.4
-          imagePullPolicy: IfNotPresent
-          command: ['sh', '-c', 'until nc -z openpitrix-attachment-manager.openpitrix-system.svc 9122; do echo "waiting for attachment-manager"; sleep 2; done;']
+      - name: wait-app-manager
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z openpitrix-app-manager.openpitrix-system.svc 9102; do echo "waiting for app-manager"; sleep 2; done;']
+      - name: wait-attachment-manager
+        image: busybox:1.28.4
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'until nc -z openpitrix-attachment-manager.openpitrix-system.svc 9122; do echo "waiting for attachment-manager"; sleep 2; done;']
       containers:
-        - name: hyperpitrix-sync-app-job
-          command: ["sync-repo","-r","https://kubernetes-charts.storage.googleapis.com/","-t","https"]
-          imagePullPolicy: IfNotPresent
-          image: openpitrix/release-app:latest
+      - name: hyperpitrix-sync-app-job
+        command: ["sync-repo","-r","https://kubernetes-charts.storage.googleapis.com/","-t","https"]
+        imagePullPolicy: IfNotPresent
+        image: openpitrix/release-app:latest
       restartPolicy: OnFailure
       dnsPolicy: ClusterFirst
       schedulerName: default-scheduler
