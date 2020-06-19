@@ -3,14 +3,11 @@ module openpitrix.io/syncpkg
 go 1.12
 
 require (
-	github.com/fatih/camelcase v1.0.0 // indirect
-	github.com/fatih/structs v1.1.0 // indirect
 	github.com/go-openapi/strfmt v0.19.3
 	github.com/gocraft/dbr v0.0.0-20190714181702-8114670a83bd // indirect
-	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.11.3 // indirect
-	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7 // indirect
-	openpitrix.io/openpitrix v0.4.1
+	openpitrix.io/openpitrix v0.4.9-0.20200617102217-10d232395f06
 )
 
-replace openpitrix.io/openpitrix => openpitrix.io/openpitrix v0.4.2
+replace github.com/gocraft/dbr => github.com/gocraft/dbr v0.0.0-20180507214907-a0fd650918f6
+
+replace github.com/docker/docker => github.com/docker/engine v0.0.0-20190423201726-d2cfbce3f3b0

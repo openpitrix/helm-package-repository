@@ -11,6 +11,7 @@ import (
 	"openpitrix.io/openpitrix/pkg/sender"
 	"openpitrix.io/openpitrix/pkg/util/ctxutil"
 	"openpitrix.io/openpitrix/pkg/util/pbutil"
+	"os"
 	"strings"
 )
 
@@ -29,7 +30,7 @@ func main() {
 		var appName string
 		segName := strings.Split(f.Name(), "-")
 		if len(segName) > 0 {
-			appName = segName[0]
+			appName = strings.Join(segName[:len(segName)-1], "-")
 		}
 		content, err := ioutil.ReadFile(filePath)
 		if err != nil {
@@ -48,39 +49,51 @@ func main() {
 			VersionType:    pbutil.ToProtoString("helm"),
 		}
 
-		ctxFunc := func() (ctx context.Context){
+		ctxFunc := func() (ctx context.Context) {
 			ctx = context.Background()
 			ctx = ctxutil.ContextWithSender(ctx, sender.GetSystemSender())
 			return
 		}
+		apps, err := client.DescribeActiveApps(ctxFunc(), &pb.DescribeAppsRequest{Name: []string{appName}})
+		if err != nil {
+			logger.Error(nil, "describe app error: %s", err.Error())
+			os.Exit(-1)
+		}
+		if apps.TotalCount > 0 {
+			continue
+		}
+
 		res, err := client.CreateApp(ctxFunc(), createReq)
 		if err != nil {
 			logger.Error(nil, "create app error: %s", err.Error())
-		} else {
-			submitReq := &pb.SubmitAppVersionRequest{
-				VersionId: res.VersionId,
-			}
+			os.Exit(-1)
+		}
+		submitReq := &pb.SubmitAppVersionRequest{
+			VersionId: res.VersionId,
+		}
 
-			_, err = client.SubmitAppVersion(ctxFunc(), submitReq)
-			if err != nil {
-				logger.Error(nil, "submit app error: %s", err.Error())
-			}
+		_, err = client.SubmitAppVersion(ctxFunc(), submitReq)
+		if err != nil {
+			logger.Error(nil, "submit app error: %s", err.Error())
+			os.Exit(-1)
+		}
 
-			passReq := &pb.PassAppVersionRequest{
-				VersionId: res.VersionId,
-			}
-			_, err = client.AdminPassAppVersion(ctxFunc(), passReq)
-			if err != nil {
-				logger.Error(nil, "pass app error: %s", err.Error())
-			}
+		passReq := &pb.PassAppVersionRequest{
+			VersionId: res.VersionId,
+		}
+		_, err = client.AdminPassAppVersion(ctxFunc(), passReq)
+		if err != nil {
+			logger.Error(nil, "pass app error: %s", err.Error())
+			os.Exit(-1)
+		}
 
-			releaseReq := &pb.ReleaseAppVersionRequest{
-				VersionId: res.VersionId,
-			}
-			_, err = client.ReleaseAppVersion(ctxFunc(), releaseReq)
-			if err != nil {
-				logger.Error(nil, "release app error: %s", err.Error())
-			}
+		releaseReq := &pb.ReleaseAppVersionRequest{
+			VersionId: res.VersionId,
+		}
+		_, err = client.ReleaseAppVersion(ctxFunc(), releaseReq)
+		if err != nil {
+			logger.Error(nil, "release app error: %s", err.Error())
+			os.Exit(-1)
 		}
 	}
 
