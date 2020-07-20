@@ -1,0 +1,9 @@
+https://charts.kubesphere.io/main/gitlab-2.4.5.tgz
+https://charts.kubesphere.io/main/harbor-1.4.0.tgz
+https://charts.kubesphere.io/main/minio-5.0.26.tgz
+https://charts.kubesphere.io/main/nginx-1.3.0.tgz
+https://charts.kubesphere.io/main/tomcat-0.4.1+1.tgz
+https://charts.kubesphere.io/test/mongodb-0.3.0.tgz
+https://charts.kubesphere.io/test/postgresql-0.3.0.tgz
+https://charts.kubesphere.io/test/rabbitmq-0.3.0.tgz
+https://charts.kubesphere.io/test/redis-0.3.0.tgz
