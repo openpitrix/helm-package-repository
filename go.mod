@@ -1,10 +1,10 @@
-module openpitrix.io/syncpkg
+module github.com/openpitrix/helm-package-repository
 
 go 1.12
 
 require (
-	github.com/go-openapi/strfmt v0.19.3
 	github.com/gocraft/dbr v0.0.0-20190714181702-8114670a83bd // indirect
+	github.com/golang/protobuf v1.3.2
 	openpitrix.io/openpitrix v0.4.9-0.20200617102217-10d232395f06
 )
 

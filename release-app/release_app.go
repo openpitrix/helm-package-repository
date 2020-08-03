@@ -3,19 +3,26 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/go-openapi/strfmt"
 	"io/ioutil"
+	"os"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
+
+	"openpitrix.io/openpitrix/pkg/repoiface"
+
 	"openpitrix.io/openpitrix/pkg/client/app"
 	"openpitrix.io/openpitrix/pkg/logger"
 	"openpitrix.io/openpitrix/pkg/pb"
 	"openpitrix.io/openpitrix/pkg/sender"
 	"openpitrix.io/openpitrix/pkg/util/ctxutil"
 	"openpitrix.io/openpitrix/pkg/util/pbutil"
-	"os"
-	"strings"
 )
 
+const Helm = "helm"
+
 func main() {
+	logger.SetLevelByString("debug")
+
 	var path string
 	flag.StringVar(&path, "path", "./package/", "need package path.eg./your/path/to/pkg/")
 	flag.Parse()
@@ -23,30 +30,23 @@ func main() {
 	fileInfoList, err := ioutil.ReadDir(path)
 	if err != nil {
 		logger.Error(nil, "read dir path error: %s", err.Error())
+		panic(err)
 	}
 
 	for _, f := range fileInfoList {
 		filePath := path + f.Name()
-		var appName string
-		segName := strings.Split(f.Name(), "-")
-		if len(segName) > 0 {
-			appName = strings.Join(segName[:len(segName)-1], "-")
-		}
+
 		content, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			logger.Error(nil, "")
+			panic(err)
 		}
-		pkg := strfmt.Base64(content)
+		vi, err := repoiface.LoadPackage(context.Background(), Helm, content)
+		appName := vi.GetName()
+		versionName := vi.GetVersionName()
 
 		client, err := app.NewAppManagerClient()
 		if err != nil {
 			panic(err)
-		}
-
-		createReq := &pb.CreateAppRequest{
-			VersionPackage: pbutil.ToProtoBytes(pkg),
-			Name:           pbutil.ToProtoString(appName),
-			VersionType:    pbutil.ToProtoString("helm"),
 		}
 
 		ctxFunc := func() (ctx context.Context) {
@@ -54,47 +54,89 @@ func main() {
 			ctx = ctxutil.ContextWithSender(ctx, sender.GetSystemSender())
 			return
 		}
-		apps, err := client.DescribeActiveApps(ctxFunc(), &pb.DescribeAppsRequest{Name: []string{appName}})
+		apps, err := client.DescribeActiveApps(ctxFunc(), &pb.DescribeAppsRequest{
+			Name: []string{appName},
+			Isv:  []string{"\u0000"},
+		})
 		if err != nil {
 			logger.Error(nil, "describe app error: %s", err.Error())
 			os.Exit(-1)
 		}
+		var versionId *wrappers.StringValue
 		if apps.TotalCount > 0 {
-			continue
+			appId := apps.AppSet[0].AppId.String()
+			describeVersionReq := &pb.DescribeAppVersionsRequest{
+				AppId: []string{appId},
+				Name:  []string{versionName},
+				Limit: 200,
+			}
+			res, err := client.DescribeActiveAppVersions(ctxFunc(), describeVersionReq)
+			if err != nil {
+				logger.Error(nil, "describe app version error: %s", err.Error())
+				os.Exit(-1)
+			}
+			if res.TotalCount == 0 {
+				createReq := &pb.CreateAppVersionRequest{
+					AppId:   pbutil.ToProtoString(appId),
+					Package: pbutil.ToProtoBytes(content),
+					Type:    pbutil.ToProtoString(Helm),
+				}
+				res, err := client.CreateAppVersion(ctxFunc(), createReq)
+				if err != nil {
+					logger.Error(nil, "create app version error: %s", err.Error())
+					os.Exit(-1)
+				}
+
+				versionId = res.VersionId
+			} else {
+				logger.Info(nil, "app %v version %s is exists, skip...", appName, versionName)
+				continue
+			}
+		} else {
+			createReq := &pb.CreateAppRequest{
+				VersionPackage: pbutil.ToProtoBytes(content),
+				Name:           pbutil.ToProtoString(appName),
+				VersionType:    pbutil.ToProtoString(Helm),
+			}
+			res, err := client.CreateApp(ctxFunc(), createReq)
+			if err != nil {
+				logger.Error(nil, "create app error: %s", err.Error())
+				os.Exit(-1)
+			}
+
+			versionId = res.VersionId
 		}
 
-		res, err := client.CreateApp(ctxFunc(), createReq)
-		if err != nil {
-			logger.Error(nil, "create app error: %s", err.Error())
-			os.Exit(-1)
-		}
 		submitReq := &pb.SubmitAppVersionRequest{
-			VersionId: res.VersionId,
+			VersionId: versionId,
 		}
 
 		_, err = client.SubmitAppVersion(ctxFunc(), submitReq)
 		if err != nil {
-			logger.Error(nil, "submit app error: %s", err.Error())
+			logger.Error(nil, "submit app version error: %s", err.Error())
 			os.Exit(-1)
 		}
 
 		passReq := &pb.PassAppVersionRequest{
-			VersionId: res.VersionId,
+			VersionId: versionId,
 		}
 		_, err = client.AdminPassAppVersion(ctxFunc(), passReq)
 		if err != nil {
-			logger.Error(nil, "pass app error: %s", err.Error())
+			logger.Error(nil, "pass app version error: %s", err.Error())
 			os.Exit(-1)
 		}
 
 		releaseReq := &pb.ReleaseAppVersionRequest{
-			VersionId: res.VersionId,
+			VersionId: versionId,
 		}
 		_, err = client.ReleaseAppVersion(ctxFunc(), releaseReq)
 		if err != nil {
-			logger.Error(nil, "release app error: %s", err.Error())
+			logger.Error(nil, "release app verison error: %s", err.Error())
 			os.Exit(-1)
 		}
+
+		logger.Info(nil, "app %v version %s is done", appName, versionName)
+		continue
 	}
 
 }
