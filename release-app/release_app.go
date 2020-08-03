@@ -8,11 +8,10 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"openpitrix.io/openpitrix/pkg/repoiface"
-
 	"openpitrix.io/openpitrix/pkg/client/app"
 	"openpitrix.io/openpitrix/pkg/logger"
 	"openpitrix.io/openpitrix/pkg/pb"
+	"openpitrix.io/openpitrix/pkg/repoiface"
 	"openpitrix.io/openpitrix/pkg/sender"
 	"openpitrix.io/openpitrix/pkg/util/ctxutil"
 	"openpitrix.io/openpitrix/pkg/util/pbutil"
@@ -33,6 +32,18 @@ func main() {
 		panic(err)
 	}
 
+	var appIds []string
+
+	client, err := app.NewAppManagerClient()
+	if err != nil {
+		panic(err)
+	}
+	ctxFunc := func() (ctx context.Context) {
+		ctx = context.Background()
+		ctx = ctxutil.ContextWithSender(ctx, sender.GetSystemSender())
+		return
+	}
+
 	for _, f := range fileInfoList {
 		filePath := path + f.Name()
 
@@ -44,16 +55,6 @@ func main() {
 		appName := vi.GetName()
 		versionName := vi.GetVersionName()
 
-		client, err := app.NewAppManagerClient()
-		if err != nil {
-			panic(err)
-		}
-
-		ctxFunc := func() (ctx context.Context) {
-			ctx = context.Background()
-			ctx = ctxutil.ContextWithSender(ctx, sender.GetSystemSender())
-			return
-		}
 		apps, err := client.DescribeActiveApps(ctxFunc(), &pb.DescribeAppsRequest{
 			Name: []string{appName},
 			Isv:  []string{"\u0000"},
@@ -63,8 +64,9 @@ func main() {
 			os.Exit(-1)
 		}
 		var versionId *wrappers.StringValue
+		var appId string
 		if apps.TotalCount > 0 {
-			appId := apps.AppSet[0].AppId.String()
+			appId = apps.AppSet[0].AppId.GetValue()
 			describeVersionReq := &pb.DescribeAppVersionsRequest{
 				AppId: []string{appId},
 				Name:  []string{versionName},
@@ -105,6 +107,7 @@ func main() {
 			}
 
 			versionId = res.VersionId
+			appId = res.AppId.GetValue()
 		}
 
 		submitReq := &pb.SubmitAppVersionRequest{
@@ -136,7 +139,15 @@ func main() {
 		}
 
 		logger.Info(nil, "app %v version %s is done", appName, versionName)
+		appIds = append(appIds, appId)
 		continue
 	}
 
+	_, err = client.ResortApps(ctxFunc(), &pb.ResortAppsRequest{
+		AppId: appIds,
+	})
+	if err != nil {
+		logger.Error(nil, "resort apps failed error: %s", err.Error())
+		panic(err)
+	}
 }
