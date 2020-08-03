@@ -92,6 +92,7 @@ func main() {
 				versionId = res.VersionId
 			} else {
 				logger.Info(nil, "app %v version %s is exists, skip...", appName, versionName)
+				appIds = append(appIds, appId)
 				continue
 			}
 		} else {
