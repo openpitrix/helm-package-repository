@@ -7,3 +7,5 @@ https://charts.kubesphere.io/test/mongodb-0.3.0.tgz
 https://charts.kubesphere.io/test/postgresql-0.3.0.tgz
 https://charts.kubesphere.io/test/rabbitmq-0.3.0.tgz
 https://charts.kubesphere.io/test/redis-0.3.0.tgz
+https://kubernetes-charts.storage.googleapis.com/memcached-3.2.3.tgz
+https://kubernetes-charts.storage.googleapis.com/mysql-1.6.6.tgz
