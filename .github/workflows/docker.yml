@@ -3,6 +3,7 @@ name: Docker
 on:
   push:
     branches: [ master ]
+    tags: ['*']
 
 jobs:
 
@@ -19,5 +20,5 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
         repository: openpitrix/release-app
-        tags: latest
+        tag_with_ref: true
         push: true
