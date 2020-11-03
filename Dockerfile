@@ -7,8 +7,6 @@ COPY . .
 RUN mkdir -p /release_bin
 RUN GOPROXY=https://goproxy.io CGO_ENABLED=0 GOBIN=/release_bin go install -ldflags '-w -s' -tags netgo ./release-app/...
 
-RUN find /release_bin -type f -exec upx {} \;
-
 RUN cd package && for pkg in $(cat urls.txt); do curl -O $pkg; done
 
 FROM alpine:3.7
