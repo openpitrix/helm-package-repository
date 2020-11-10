@@ -14,6 +14,3 @@ https://kubernetes-charts.storage.googleapis.com/memcached-3.2.3.tgz
 https://kubernetes-charts.storage.googleapis.com/mysql-1.6.6.tgz
 https://charts.kubesphere.io/test/apisix-0.1.5.tgz
 https://charts.kubesphere.io/test/porter-0.1.3.tgz
-https://charts.kubesphere.io/test/aws-ebs-csi-driver-0.3.0.tgz
-https://charts.kubesphere.io/test/aws-efs-csi-driver-0.1.0.tgz
-https://charts.kubesphere.io/test/aws-fsx-csi-driver-0.1.0.tgz
