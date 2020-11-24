@@ -1,4 +1,6 @@
-FROM openpitrix/openpitrix-builder as builder
+FROM golang:1.13-alpine as builder
+
+RUN apk add --no-cache git curl openssl
 
 RUN mkdir -p /workspace/helm-package-repository/
 WORKDIR /workspace/helm-package-repository/
